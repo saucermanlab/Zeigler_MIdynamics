@@ -1,5 +1,8 @@
-#figure 2 from dynamic MI paper
-#Dynamic MI paper large PCA plot - Anders Nelson - 4/2/2019
+## Generates PCA plots for Figure 3
+# must run fig3.m script first to generate data for use in these plots
+# last updated ACZ 2.18.2020
+
+
 # install.packages('ggplot2')
 # install.packages('tidyverse')
 # install.packages('ggthemes')

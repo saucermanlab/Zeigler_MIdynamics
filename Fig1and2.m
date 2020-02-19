@@ -1,7 +1,17 @@
 %% Figure 1+2
-% Generates figures showing the input curves and validation against
-% experimental data
-% Last updated by ACZ 1.18.2020
+% Generates figure 1 showing input curves
+% Generates figure 2 showing validation against experimental data
+% (both figures are generated with the peak height = 0.6 and with an
+% ensemble model)
+% Generates supplemental Figures: 
+%       - S2 (tissue-level model parameters)
+%       - S3 (network dynamics)
+%       - S4 (alterations to peak height and correlations)
+% Generates output figure for additional validation (not shown in paper)
+% Generates plots of all input curves from the ensemble mdoel (not shown in
+% paper)
+
+% Last updated by ACZ 2.18.2020
 
 clear
 clc
@@ -12,7 +22,7 @@ stdev = 0.05;
 
 %% validation data
 
-% collagen expression
+% collagen expression data (Deten 2001, Zimmerman 2001)
 cData1_ave = [0.969, 1.607; 4.778, 3.75; 11.713, 16.964; 11.46, 12.857; 3.915, 6.964; 3.35, 6.25; 2.263, 3.571; 0.715, 2.679];
 d1 = max(cData1_ave,[],1);
 cData1_ave = cData1_ave./d1;
@@ -28,34 +38,36 @@ cData2_std = cData2_std./d2;
 cData2_time = [1, 4, 7, 14, 28]./7;
 
 
-% Collagen content data to match (Fomovsky AJP 2010)
+% Collagen content data (Fomovsky AJP 2010)
 time_rat = [7;14;21;42];
 AF_rat = [9.0; 16.5; 21.0; 26.5];
 AFsd_rat = [4.0; 8.0; 9.0; 7.0];
 
 
-%% Standard simulation
+%% Simulations with peak height = 0.6
+
+% generate input curves and plot curves for Figure 1
 [InputCsim,tInSim,inputNode,resNorm,resNormConvert] = InputCurve_12_19(peak, peak);
 
-% extract the parameters
-% paramName = 'fib617_params';
-% eval(strcat('[params,y0] = ',paramName,';'));
+% extract the parameters from logic based ODE model
 [params,y0] = fib617_params(peak);
 [rpar,tau,ymax,speciesNames,KI]=params{:};
 params = {rpar,tau,ymax,speciesNames,KI,InputCsim,inputNode,tInSim};
 
-
-
-% standard simulation
+% simulation using logic based ODE model (signal network)
 outputIns = [29, 31, 83, 86, 88, 51, 96, 97, 98];
 options = [];
 [t1,y1] = ode15s(@dynamicODE,[0 2329],y0,options,params);
 yI = real(interp1(t1,y1,tInSim));
+
+% extract parameters from logic based model to feed into tissue-level model
 Cmrna = sum(yI(:,[101,102]),2);
 peakCol = max(Cmrna);
-[c1_nom,days] = MISimODEplot(Cmrna,tInSim,peakCol);
 
+% simulation using tissue-level model
+[c1_nom,days] = MISimODEplot(Cmrna,tInSim,peakCol); % plots figure used in S2
 
+% prepare results of simulation for plotting
 yOuts = yI(:,outputIns);
 yIns = yI(:,[2, 27, 50, 55, 58, 17, 10, 37, 34]);
 yCols = yI(168:end,[101,102])./max(yI(168:end,101));
@@ -64,7 +76,7 @@ tWeek = (tInSim(168:end) - 168)./168;
 col1_nom = yI(168:end,101);
 col3_nom = yI(168:end,102);
 
-% plots
+% plots similar to Figure 2 for peak height set to 0.6
 figure
 subplot(2,1,1)
 yyaxis left
@@ -103,14 +115,16 @@ set(gca,'XTick',0:168:2329);
 set(gca,'XTickLabel',-1:1:13,'fontsize',7);
 xlabel('Time (weeks)');ylabel('Activity');
 axis([0 2328 0 0.7]);
-% 
-% figure
-% plot(tInSim,yIns)
-% legend(speciesNames([2, 27, 50, 55, 58, 17, 10, 37, 34]));
-% set(gca,'XTick',0:168:2329);
-% set(gca,'XTickLabel',-1:1:13,'fontsize',7);
-% xlabel('Time (weeks)');ylabel('Activity');
-% axis([0 2328 0 1]);
+
+
+% Outputs for additional validation (not shown in paper)
+figure
+plot(tInSim,yIns)
+legend(speciesNames([2, 27, 50, 55, 58, 17, 10, 37, 34]));
+set(gca,'XTick',0:168:2329);
+set(gca,'XTickLabel',-1:1:13,'fontsize',7);
+xlabel('Time (weeks)');ylabel('Activity');
+axis([0 2328 0 1]);
 
 
 %% Ensemble modeling
@@ -137,7 +151,7 @@ for i = 1:500
 end
 
 
-%% plot inputs
+%% plot inputs from ensemble data
 % experimental data
 y1_tgfb = [-10, 10, 174, 149, 72];
 t1_tgfb = [1, 24, 96, 672, 1344];
@@ -336,12 +350,11 @@ set(gca,'XTickLabel',0:2:12,'fontsize',14);
 xlabel('Time (Weeks)');
 title('PDGF');
 
-%% plot outputs
+%% plots in Figure 2
 
 
 % set up plot dependencies
 tWeek = (tInSim(168:end) - 168)./168;
-% cmap = [0.9,0.9,0.9];
 cmap = [0.2 0.2 0.2 0.05];
 
 % find means of simulations
@@ -357,7 +370,7 @@ subplot(2,1,1)
 yyaxis left
 a = plot(tWeek,c1mrna,'-','Color',cmap);hold on
 b = plot(tWeek,avec1,'-','Color','k','LineWidth',2);hold on
-c = plot(tWeek,col1_nom,'--','Color','m','LineWidth',2);
+c = plot(tWeek,col1_nom,'-','Color','m','LineWidth',2);
 uistack(a,'bottom');
 ylim([0 0.3])
 yyaxis right
@@ -365,12 +378,12 @@ errorbar(cData1_time,cData1_ave(:,1),cData1_std(:,1),'bo');hold on;
 errorbar(cData2_time,cData2_ave(:,1),cData2_std(:,1),'b*');hold on; 
 ylim([0 1.4]);
 xlim([0 9]);
-legend('ensemble','mean of ensemble','set peak','PMID: 11444923','PMID: 11557576');
+legend('ensemble','mean of ensemble','set peak','Deten 2001','Zimmerman 2001');
 subplot(2,1,2)
 yyaxis left
 a = plot(tWeek,c3mrna,'-','Color',cmap);hold on
 b = plot(tWeek,avec3,'-','Color','k','LineWidth',2);hold on
-c = plot(tWeek,col3_nom,'--','Color','k','LineWidth',2);
+c = plot(tWeek,col3_nom,'-','Color','m','LineWidth',2);
 uistack(a,'bottom');
 ylim([0 0.3])
 yyaxis right
@@ -378,7 +391,7 @@ hold on; errorbar(cData1_time,cData1_ave(:,2),cData1_std(:,2),'bo');
 hold on; errorbar(cData2_time,cData2_ave(:,2),cData2_std(:,2),'b*');
 ylim([0 1.4]);
 xlim([0 9]);
-legend('ensemble','mean of ensemble','set peak','PMID: 11444923','PMID: 11557576');
+legend('ensemble','mean of ensemble','set peak','Deten 2001','Zimmerman 2001');
 title(strcat('Randomly Sampled Peak Height with normal range mean = ',num2str(peak),'st dev = ',num2str(stdev)));
 
 
@@ -408,7 +421,7 @@ end
 
 
 
-% generate supplemental figure with all activation for ensemble
+% Option to generate supplemental figure with all activation for ensemble
 % figure;
 % imagesc(aveNet')
 % colormap(flipud(bone))
@@ -423,7 +436,7 @@ end
 % set(gca,'XTickLabel',-1:1:8);
 % disp('done')
 
-% supplemental figure for just 0.6
+% supplemental figure S3 for just 0.6
 figure;
 imagesc(yI')
 colormap(flipud(bone))
@@ -438,7 +451,7 @@ set(gca,'XTick',0:168:1512);
 set(gca,'XTickLabel',-1:1:8);
 disp('done')
 
-% not shown figure of outputs
+% not shown figure of outputs from ensemble model
 aveOuts = aveNet(:,outputIns);
 figure
 plot(tInSim,yOuts)
@@ -447,3 +460,142 @@ set(gca,'XTick',0:168:2329);
 set(gca,'XTickLabel',-1:1:13,'fontsize',7);
 xlabel('Time (weeks)');ylabel('Activity');
 axis([0 2328 0 0.11]);
+
+
+%% Simulations to demonstrate how peak height affects simulations
+% used in Figure S4
+
+pk = [0.35:0.05:0.65];
+numC = length(pk);
+
+
+
+for i = 1:numC
+    % extract the parameters
+    [params,y0] = fib617_params(pk(i));
+    [rpar,tau,ymax,speciesNames,KI]=params{:};
+
+    disp(strcat('Simulation Number',num2str(i)))
+    [InputCsim,tInSim,inputNode] = InputCurve_12_19NP(pk(i), pk(i));
+    
+    %running standard simulations
+    params = {rpar,tau,ymax,speciesNames,KI,InputCsim,inputNode,tInSim};
+    
+    % standard simulation
+    outputIns = [101, 102, 103, 104, 95, 94, 96];
+    options = [];
+    [t1,y1] = ode15s(@dynamicODE,[0 2329],y0,options,params);
+    yI = real(interp1(t1,y1,tInSim));
+    Cmrna = sum(yI(:,[101,102]),2);
+    peakCol = max(Cmrna);
+    [c1,days] = MISimODE(Cmrna,tInSim,peakCol);
+
+    Carea(i,:) = c1;
+    c1mrna(:,i) = yI(168:end,101);
+    c3mrna(:,i) = yI(168:end,102);
+    tWeek = (tInSim(168:end) - 168)./168;
+end
+
+
+
+
+cmap = colormap(bone(numC+1));
+
+figure
+title('Alter peak height')
+subplot(2,1,1)
+yyaxis left
+for i = 1:numC
+    plot(tWeek,c1mrna(:,i),'-','Color',cmap(i,:));hold on
+end
+ylim([0 0.3])
+legend('0.35','0.4','0.45','0.5','0.55','0.6','0.65');
+subplot(2,1,2)
+yyaxis left
+for i = 1:numC
+    plot(tWeek,c3mrna(:,i),'-','Color',cmap(i,:));hold on
+end
+ylim([0 0.3])
+legend('0.35','0.4','0.45','0.5','0.55','0.6','0.65');
+
+figure; 
+title('Alter peak height');
+axis([-1 9 0 40]); xlabel('Time (weeks)'); ylabel('Area Fraction (%)');
+plot(tweek,Carea,'k');
+ for i = 1:numC
+    plot(tweek,Carea(i,:),'-','Color',cmap(i,:));hold on
+ end
+legend({'0.35','0.4','0.45','0.5','0.55','0.6','0.65'},'Location','southeast');
+
+
+%% Simulations to demostrate how baseline levels vary
+% used in figure S4
+
+pk = [0:0.05:0.25];
+numC = length(pk);
+
+
+
+for i = 1:numC
+    % extract the parameters
+    [params,y0] = fib617_paramsMod(pk(i));
+    [rpar,tau,ymax,speciesNames,KI]=params{:};
+
+    disp(strcat('Simulation Number',num2str(i)))
+    [InputCsim,tInSim,inputNode] = InputCurve_12_19base(pk(i), 0.6);
+    
+    %running standard simulations
+    params = {rpar,tau,ymax,speciesNames,KI,InputCsim,inputNode,tInSim};
+    
+    % standard simulation
+    outputIns = [101, 102, 103, 104, 95, 94, 96];
+    options = [];
+    [t1,y1] = ode15s(@dynamicODE,[0 2329],y0,options,params);
+    yI = real(interp1(t1,y1,tInSim));
+    Cmrna = sum(yI(:,[101,102]),2);
+    peakCol = max(Cmrna);
+    [c1,days] = MISimODE(Cmrna,tInSim,peakCol);
+
+    Carea2(i,:) = c1;
+    c1mrna2(:,i) = yI(:,101);
+    c3mrna2(:,i) = yI(:,102);
+    tWeek2 = (tInSim - 168)./168;
+end
+
+
+
+
+cmap = colormap(bone(numC+1));
+
+figure
+title('Alter baseline')
+subplot(2,1,1)
+yyaxis left
+for i = 1:numC
+    plot(tWeek2,c1mrna2(:,i),'-','Color',cmap(i,:));hold on
+end
+ylim([0 0.3])
+xlim([-1 12])
+legend('0','0.05','0.1','0.15','0.2','0.25','0.2','0.25');
+
+subplot(2,1,2)
+yyaxis left
+for i = 1:numC
+    plot(tWeek2,c3mrna2(:,i),'-','Color',cmap(i,:));hold on
+end
+ylim([0 0.3])
+xlim([-1 12])
+legend('0','0.05','0.1','0.15','0.2','0.25','0.2','0.25');
+
+
+
+figure; 
+title('Alter baseline')
+axis([-1 9 0 40]); xlabel('Time (weeks)'); ylabel('Area Fraction (%)');
+plot(tweek,Carea2,'k');
+ for i = 1:numC
+    plot(tweek,Carea2(i,:),'-','Color',cmap(i,:));hold on
+ end
+ xlim([-1 12])
+legend({'0','0.05','0.1','0.15','0.2','0.25','0.2','0.25','0.3','0.35'},'Location','southeast');
+

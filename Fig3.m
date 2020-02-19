@@ -1,7 +1,10 @@
 %% Generate figure 3: PCA analysis and comparison to static stimuli
 % PCA plots are generated in R from exported files
-% also generates figure S5: network activation in static conditions
-% last updated ACZ 1.19.2020
+% Generates figure S5: euclidean distances
+% Generates figure S6: network activation at time points and in static
+% simulations
+
+% last updated ACZ 2.18.2020
 
 clear
 clc
@@ -16,17 +19,17 @@ deltaIn = 0.6;
 %% standard dynamic simulation
 [InputCsim,tInSim,inputNode] = InputCurve_12_19NP(deltaIn,deltaIn);
 
-% % extract the parameters
+% extract the parameters
 [params,y0] = fib617_params(deltaIn);
 [rpar,tau,ymax,speciesNames,KI]=params{:};
 params = {rpar,tau,ymax,speciesNames,KI,InputCsim,inputNode,tInSim};
-% 
+
 % FOR 0.6 MODEL
 options = [];
 [t1,y1] = ode15s(@dynamicODE,[0 2329],y0,options,params);
 yI = real(interp1(t1,y1,tInSim));
 
-% % FOR ENSEMBLE MODEL
+% FOR ENSEMBLE MODEL
 % load aveNet_st05
 % yI = aveNet;
 
@@ -87,7 +90,9 @@ end
 allOuts2 = [yI(dayTick,outputIns);yOut']; %only used for PCA because has more time points
 
 
- %% euclidean distance from each day 
+ %% Calculate distance between each dynamic time point and each static simulation
+ % used in Figure S5
+ % identifies static conditions to highlight in Figure 3
 
 D=squareform(pdist(real(allOuts)));
 
@@ -96,7 +101,7 @@ day1dist=D(5:end,2);
 day7dist=D(5:end,3);
 day42dist=D(5:end,4);
 
-%% display the lowest eucD values for each dynamic point
+
 doubleIndex = [find(day0dist==min(day0dist)), find(day1dist==min(day1dist)), ...
     find(day7dist==min(day7dist)), find(day42dist==min(day42dist))];
 
@@ -119,7 +124,7 @@ disp(strcat('day0.5 single match = ',singleMatch{2}))
 disp(strcat('day7 single match = ',singleMatch{3}))
 disp(strcat('day42 single match = ',singleMatch{4}))
 
-%% barplots of euclidean distance vs all 4 timepoints
+%Plots for figure S5
 fig=figure;
 bar(real(day0dist))
 set(gca,'XTick',1:length(comboNames));
@@ -160,7 +165,7 @@ fig.PaperPosition = [0 0 16 4];
 
 
 
-%% reduced heatmap, only nodes of fibrotic interest
+%% Heatmap used in Figure 3
 fig=figure;
 subplot(1,3,1);
 imagesc(real(allOuts(1:4,:)'),[0 1]);
@@ -208,8 +213,9 @@ xtickangle(70)
 colorbar('Location','eastoutside');
 
 
-%% establish labels for all timepoints/stimuli
+%% create and write csv for R plotting
 
+% establish labels
 dayLabels2={'Day0','Day0.5','Day2','Day3','Day4','Day5','Day6','Day7','Day14','Day21','Day28','Day35','Day42'};
 
 labels2 = [dayLabels2,comboNames];
@@ -225,10 +231,8 @@ nodeMatch = zeros(length(labels2),1);
 nodeMatch([1:length(dayLabels2), doubleIndex+length(dayLabels2), singleIndex+length(dayLabels2)]) = 1;
 
 
-
-
-%% create and write csv for R plotting
 [coeff,score,latent,~,explained] = pca(real(allOuts2),'Centered','on','NumComponents',4); %Run PCA on 4 components
+
 %create Cell array to export to R
 exportScore=table(score(:,1),score(:,2),score(:,3),labels2',highlight',nodeMatch);
 exportLoad = table(coeff(:,1),coeff(:,2),coeff(:,3),speciesNames(outputIns)');
@@ -240,7 +244,7 @@ writetable(exportLoad,'PCAload.csv')
 %     %from here, open the R script 'Fig 3A' and run the script to generate
 %     %the plots used in the paper
 
-%% Generate figure S5 showing network activity for all static conditions
+%% Generate figure S6 showing network activity for all static conditions + dynamic time points
 
 AllNet = [yI(dayTick,:)',yAll];
 figure
@@ -258,22 +262,4 @@ xtickangle(270);
 colorbar('Location','eastoutside');
 
 
-%% Generate figure showing similarity of close time points
-
-dayTick2 = [50, 504] +168;
-
-closeNet = yI(dayTick2,outputIns);
-figure
-imagesc(real(closeNet'),[0 1]);
-colormap(flipud(bone));
-caxis([0 0.5]);
-set(gca,'YTick',1:length(speciesNames));
-set(gca,'YTickLabel',speciesNames(outputIns),'fontsize',13);
-xlabel('Stimulus');
-set(gca,'XTick',1:2);
-set(gca,'XTickLabel',{'day 2.1','day21'},'fontsize',7);
-ylabel('Phenotypic Output');
-title(['Input Simulations and Timepoints']);
-xtickangle(270);
-colorbar('Location','eastoutside');
 

@@ -1,12 +1,13 @@
 
-function [InputCsim,tInSim,inputNode,resNorm,resNormConvert] = InputCurve_12_19base(baseline, maxWeightHigh)
+function [InputCsim,tInSim,inputNode,resNorm,resNormConvert] = InputCurve_12_19NP(maxWeightLow, maxWeightHigh)
 % InputCsim is a 9x2329 vector with the weights of the 9 input cytokines at all 2329 time points. 
 % inputNode is a vector listing the indicies of the input reactions. 
 
 tIn = [0:1:2160];
 resNormConvert = [];
 
-weightAxisDifferenceHigh = maxWeightHigh - baseline;
+weightAxisDifferenceHigh = maxWeightHigh - 0.1;
+weightAxisDifferenceLow = maxWeightLow - 0.1;
 calc_FCmin = @(fcMax, maxWeight, weightAxisDifference) (-fcMax + 1)*(maxWeight/weightAxisDifference)+fcMax;
 
 %% TGFB
@@ -24,15 +25,22 @@ tSorted = tSorted(2:end);
 ySorted = ySorted(2:end); % Since there are two, t = 0 & y = 1 points. 
 
 fTGFB = @(p,t) 1+p(1)*exp(-t/p(2)).*(1-exp(-t/p(3)));
+% fTGFB = @(p,t) 1+p(1)*exp(-t/p(2)).*(1-exp(-t/p(3)))+...
+%     p(4)*exp(-t/p(5)).*(1-exp(-t/p(6)));
 
 paramsHandTuned_TGFB = [209.126999999910,1000,50];
+% paramsHandTuned_TGFB = [440.673000000000, 170, 1500, 25, 2000, 5900];
+%plot(tSorted,ySorted,'o',tIn,fTGFB(paramsHandTuned_TGFB,tIn))
+%yTGFB = fTGFB(paramsHandTuned_TGFB,tIn);
 
 FCmax_TGFB = max(y);
 FCmin_TGFB = calc_FCmin(FCmax_TGFB, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_TGFB, 1, FCmax_TGFB*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
+% x = [-2.6298, 1, 20.1063];
+% y = [0, 0.1, 0.63];
 
 fTGFB_Convert = @(p,xData) p(1).*xData + p(2);
 
@@ -53,6 +61,27 @@ while abs(max(yTGFB) - maxWeightHigh) > 0.00001
     yTGFB = fTGFB_Convert(p, fTGFB(paramsHandTuned_TGFB,tIn));
 end
     
+% while  abs(yTGFB(t1_tgfb(4)) - 0.3) > 0.001
+%     if yTGFB(t1_tgfb(4)) - 0.3 < 0
+%         magTerm = paramsHandTuned_TGFB(4) + 0.1;
+%     else
+%         magTerm = paramsHandTuned_TGFB(4) - 0.1;
+%     end
+%     paramsHandTuned_TGFB(4) = magTerm;
+%     yTGFB = fTGFB_Convert(p, fTGFB(paramsHandTuned_TGFB,tIn));
+% end
+% 
+% while abs(max(yTGFB) - maxWeightHigh) > 0.00001
+%     %disp('TGFB');
+%     %disp(max(yTGFB));
+%     if (max(yTGFB) - maxWeightHigh) > 0
+%         magTerm = paramsHandTuned_TGFB(1) - 0.001;
+%     else
+%         magTerm = paramsHandTuned_TGFB(1) + 0.001;
+%     end
+%     paramsHandTuned_TGFB(1) = magTerm;
+%     yTGFB = fTGFB_Convert(p, fTGFB(paramsHandTuned_TGFB,tIn));
+% end
 
 resNormTGFB = sum((fTGFB(paramsHandTuned_TGFB,tSorted) - ySorted).^2);
 rmse_TGFB = sqrt(mean((fTGFB(paramsHandTuned_TGFB,tSorted) - ySorted).^2));
@@ -81,7 +110,7 @@ FCmax_IL6 = max(y);
 FCmin_IL6 = calc_FCmin(FCmax_IL6, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_IL6, 1, FCmax_IL6*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
 % x = [-14, 1, 79.8];
 % y = [0, 0.1, 0.63];
@@ -131,7 +160,7 @@ FCmax_IL1 = max(y);
 FCmin_IL1 = calc_FCmin(FCmax_IL1, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_IL1, 1, FCmax_IL1*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
 % x = [-2.88, 1, 21.42];
 % y = [0, 0.1, 0.63];
@@ -186,7 +215,7 @@ FCmax_TNFa = max(y);
 FCmin_TNFa = calc_FCmin(FCmax_TNFa, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_TNFa, 1, FCmax_TNFa*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
 % x = [-1, 1, 11.55];
 % y = [0, 0.1, 0.63];
@@ -240,10 +269,10 @@ paramsHandTuned_NE = [0.516969999992107, 3200, 750];
 %yNE = fNE(paramsHandTuned_NE,tIn);
 
 FCmax_NE = max(y1_ne);
-FCmin_NE = calc_FCmin(FCmax_NE, maxWeightHigh, weightAxisDifferenceHigh);
+FCmin_NE = calc_FCmin(FCmax_NE, maxWeightLow, weightAxisDifferenceLow);
 
 x = [FCmin_NE, 1, FCmax_NE*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightLow*1.05]; 
 
 % x = [0.7441, 1, 2.3934];
 % y = [0, 0.1, 0.63];
@@ -255,10 +284,10 @@ p0 = rand(1,2);
 resNormConvert = [resNormConvert;resnorm];
 yNE = fNE_Convert(p, fNE(paramsHandTuned_NE,tIn));
 
-while abs(max(yNE) - maxWeightHigh) > 0.00001
+while abs(max(yNE) - maxWeightLow) > 0.00001
     %disp('NE');
     %disp(max(yNE));
-    if (max(yNE) - maxWeightHigh) > 0
+    if (max(yNE) - maxWeightLow) > 0
         magTerm = paramsHandTuned_NE(1) - 0.00001;
     else
         magTerm = paramsHandTuned_NE(1) + 0.00001;
@@ -289,10 +318,10 @@ paramsHandTuned_ET1 = [90.0012800177651, 120, 60]; %changed p3 to 60 which is ha
 %yET1 = fET1(paramsHandTuned_ET1,tIn);
 
 FCmax_ET1 = max(y1_et);
-FCmin_ET1 = calc_FCmin(FCmax_ET1, maxWeightHigh, weightAxisDifferenceHigh);
+FCmin_ET1 = calc_FCmin(FCmax_ET1, maxWeightLow, weightAxisDifferenceLow);
 
 x = [FCmin_ET1, 1, FCmax_ET1*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightLow*1.05]; 
 
 
 % x = [0.7629, 1, 2.2950];
@@ -305,10 +334,10 @@ p0 = rand(1,2);
 resNormConvert = [resNormConvert;resnorm];
 yET1 = fET1_Convert(p, fET1(paramsHandTuned_ET1,tIn));
 
-while abs(max(yET1) - maxWeightHigh) > 0.00001
+while abs(max(yET1) - maxWeightLow) > 0.00001
     %disp('ET1');
     %disp(max(yET1));
-    if (max(yET1) - maxWeightHigh) > 0
+    if (max(yET1) - maxWeightLow) > 0
         magTerm = paramsHandTuned_ET1(1) - 0.00001;
     else
         magTerm = paramsHandTuned_ET1(1) + 0.00001;
@@ -341,7 +370,7 @@ FCmax_BNP = max(y1_bnp);
 FCmin_BNP = calc_FCmin(FCmax_BNP, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_BNP, 1, FCmax_BNP*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
 
 % x = [-0.993, 1, 11.5133];
@@ -392,10 +421,10 @@ paramsHandTuned_Ang = [10.0797999997794, 3200, 750];
 %yAng = fAng(paramsHandTuned_Ang,tIn);
 
 FCmax_Ang = max(y);
-FCmin_Ang = calc_FCmin(FCmax_Ang, maxWeightHigh, weightAxisDifferenceHigh);
+FCmin_Ang = calc_FCmin(FCmax_Ang, maxWeightLow, weightAxisDifferenceLow);
 
 x = [FCmin_Ang, 1, FCmax_Ang*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightLow*1.05]; 
 
 
 % x = [0.7259, 1, 2.4889];
@@ -408,10 +437,10 @@ p0 = rand(1,2);
 resNormConvert = [resNormConvert;resnorm];
 yAng = fAng_Convert(p, fAng(paramsHandTuned_Ang,tIn)); 
 
-while abs(max(yAng) - maxWeightHigh) > 0.00001
+while abs(max(yAng) - maxWeightLow) > 0.00001
     %disp('Ang');
     %disp(max(yAng));
-    if (max(yAng) - maxWeightHigh) > 0
+    if (max(yAng) - maxWeightLow) > 0
         magTerm = paramsHandTuned_Ang(1) - 0.00001;
     else
         magTerm = paramsHandTuned_Ang(1) + 0.00001;
@@ -443,7 +472,7 @@ FCmax_PDGF = max(y1_pdgf);
 FCmin_PDGF = calc_FCmin(FCmax_PDGF, maxWeightHigh, weightAxisDifferenceHigh);
 
 x = [FCmin_PDGF, 1, FCmax_PDGF*1.05];
-y = [0, baseline, maxWeightHigh*1.05]; 
+y = [0, 0.1, maxWeightHigh*1.05]; 
 
 
 % x = [0.5782, 1, 3.2643];
@@ -473,7 +502,7 @@ rmse_PDGF = sqrt(mean((fPDGF(paramsHandTuned_PDGF,tSorted) - ySorted).^2));
 
 % combine all the inputs
 InputC = [yTGFB; yIL6; yIL1; yTNFa; yNE; yET1; yBNP; yAng; yPDGF];
-InputCsim = [ones(9,168).*baseline, InputC];  % add a week's worth of normal stimulation
+InputCsim = [ones(9,168).*0.1, InputC];  % add a week's worth of normal stimulation
 tInSim = [0:1:2328];
 inputNode = [2, 4, 5, 6, 7, 9, 10, 1, 8]; % based on w index of input reaction
 resNorm = [resNormTGFB; resNormIl6; resNormIL1; resNormTNFa;...
@@ -481,175 +510,5 @@ resNorm = [resNormTGFB; resNormIl6; resNormIL1; resNormTNFa;...
 rmse = [rmse_TGFB; rmse_IL6; rmse_IL1; rmse_TNFa;...
     rmse_NE; rmse_ET1; rmse_BNP; rmse_Ang; rmse_PDGF];
     
-
-%% plot actual input data vs generalized curve
-%all data values are normalized to the max value
-% 
-%figure;
-% 
-set(gcf,'defaultAxesColorOrder',[0 0 0; 0 0 0]);
-
-
-% AngII
-subplot(3,3,1)
-set(gcf,'defaultAxesColorOrder',[0 0 0; 0 0 0]);
-yyaxis left
-plot(tIn(1:2025), yAng(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_ang,y1_ang,'bo');hold on
-plot(t2_ang,y2_ang,'b*');hold on
-lgd=legend({'Idealized Curve','Hu 2014','Yamagishi 1993'},'Location','southeast');
-lgd.FontSize=14;
-ylim([FCmin_Ang FCmax_Ang*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('Angiotensin II');
-
-%TGFb
-subplot(3,3,2)
-yyaxis left
-plot(tIn(1:2025), yTGFB(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level')
-yyaxis right
-plot(t1_tgfb,y1_tgfb,'bo');hold on
-lgd=legend({'Idealized Curve','Stavropoulou 2010'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_TGFB FCmax_TGFB*1.1]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('TGFB');
-
-%IL6
-subplot(3,3,3)
-yyaxis left
-plot(tIn(1:2025), yIL6(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_il6,y1_il6,'bo');hold on
-lgd=legend({'Idealized Curve','Deten 2002'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_IL6 FCmax_IL6*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('IL6');
-
-%IL1
-subplot(3,3,4)
-yyaxis left
-plot(tIn(1:2025), yIL1(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_il1,y1_il1,'bo');hold on
-lgd=legend({'Idealized Curve','Deten 2002'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_IL1 FCmax_IL1*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('IL1');
-
-% TNFa
-subplot(3,3,5)
-yyaxis left
-plot(tIn(1:2025), yTNFa(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_tnfa,y1_tnfa,'bo');hold on
-lgd=legend({'Idealized Curve','Heba 2001'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_TNFa FCmax_TNFa*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('TNFa');
-
-% NE
-subplot(3,3,6)
-yyaxis left
-plot(tIn(1:2025), yNE(1:2025), 'k'); hold on
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right 
-plot(t1_ne,y1_ne,'bo');hold on
-plot(t2_ne,y2_ne,'b*');hold on
-ylim([-0.1 1.85]);
-ylabel('Fold Change \it in vivo');
-lgd=legend({'Idealized Curve','Veldhuisen 1995', 'Feng 2016'},'Location','southeast');
-lgd.FontSize=14;
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('NE');
-
-% ET1
-subplot(3,3,7)
-yyaxis left
-plot(tIn(1:2025), yET1(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_et,y1_et,'bo');hold on
-lgd=legend({'Idealized Curve','Loennechen 2001'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_ET1 FCmax_ET1*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('ET1');
-
-% BNP
-subplot(3,3,8)
-yyaxis left
-plot(tIn(1:2025), yBNP(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_bnp,y1_bnp,'bo');hold on
-lgd=legend({'Idealized Curve','Loennechen 2001'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_BNP FCmax_BNP*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('NP');
-
-% PDGF
-subplot(3,3,9)
-yyaxis left
-plot(tIn(1:2025), yPDGF(1:2025), 'k'); hold on 
-ylim([0 maxWeightHigh*1.05]);
-ylabel('Normalized Input Level');
-yyaxis right
-plot(t1_pdgf,y1_pdgf,'bo');hold on
-lgd=legend({'Idealized Curve','Zhao 2011'},'Location','northeast');
-lgd.FontSize=14;
-ylim([FCmin_PDGF FCmax_PDGF*1.05]);
-ylabel('Fold Change \it in vivo');
-set(gca,'XTick',0:336:2025);
-set(gca,'XTickLabel',0:2:12,'fontsize',14);
-xlabel('Time (Weeks)');
-title('PDGF');
-%save figure
-     %fig=gcf;
-%     fig.PaperUnits = 'inches';
-%     fig.PaperPosition = [0 0 13 9];
-    %saveas(fig,'Y:\Anders\Dynamic MI Anders\MI Paper Figs Anders\dynamic input curves fig 1.pdf')
-
 end
 

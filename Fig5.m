@@ -1,8 +1,10 @@
 %% figure 5: dynamic driver screen
+% Generates supplemental Figure S7: dynamics of node knocked down in figure5
+% Generates ensemble version of figure 5 and figure S7
 % updated ACZ 1.20.2020
 
 
-perturb = 10;
+perturb = 10; % defines scale of upregulation (10 = 10x overexpression)
 pHeight = 0.6;
 
 %% standard simulation
@@ -25,6 +27,7 @@ numSpec = length(speciesNames);
 sens_up = zeros(2329,107); %initiate sens, keep line for increased speed in loop
 pert_node_up=zeros(2329,107); %get expression overtime over each perturbed node
 pert_node_up_norm=zeros(2329,107);
+
 %for upregulgation, raise ymax of perturbed node to specified value
 for i = 1:numSpec
     disp(['Upregulation # ',num2str(i),' of ', num2str(length(ymax))]) 
@@ -39,12 +42,12 @@ for i = 1:numSpec
     pert_node_up(:,i)=(yI2(:,i)); %get level of perturbed node overtime
     pert_node_up_norm(:,i)=(yI2(:,i))-(yI(:,i)); %get level of perturbed node overtime minus the control
 end
-%% Normalize to delta vs normal simulation values
+
+
+% Normalize to delta vs normal simulation values
 sens_up_norm = sens_up-(yI(:,101)+yI(:,102)); %subtract control CImRNA values from perturbed simulation to get difference at each timepoint
 
-%% Get indicies of nodes that have a minimal effect below threshold, these will be removed from
-%screening figure
-
+% Get indicies of nodes that have a minimal effect below threshold
 ignoreDex=find(max(abs(sens_up_norm))<0.1); %nodes to remove due to minimal effect
 save('ignoreDex','ignoreDex')
 sens2=sens_up_norm;
@@ -52,19 +55,19 @@ sens2(:,ignoreDex)=[];
 names2=speciesNames;
 names2(ignoreDex)=[];
 
-%% Custom Colormap (Blue => White => Red)
+%% Plot figure 5
+
 redd=[ones(1,100),1:-0.01:0];
 bluu=[0:0.01:1,ones(1,100)];
 whit=[0:.01:1,1,1:-.01:0];
 cmap=[bluu',whit(1:201)',redd'];
 
 
-%%
-% plot the clustered sensitivity
 tree = linkage(sens_up_norm(168:1008,:)'); %tree
 dist = pdist(sens_up_norm(168:1008,:)'); %distances
 leafOrder = optimalleaforder(tree,dist);
-%background subtracted
+
+% entire screen plot
 figure  
 colormap(cmap)
 imagesc([sens_up_norm(1:1177,leafOrder)']) %1176=24(hr)*7(days)*7(weeks)
@@ -77,10 +80,10 @@ set(gca,'XTick',0:168:1176);
 set(gca,'XTickLabel',-1:1:6);
 xlabel('Time (Weeks)','FontSize',20);
 ylabel('Altered Node','FontSize',20);
-caxis([-1,1]); 
+caxis([-0.5,0.5]); 
 
 
-% plot the clustered sensitivity
+% Figure 5
 tree = linkage(sens2(200:1008,:)'); %tree
 dist = pdist(sens2(200:1008,:)'); %distances
 leafOrder = optimalleaforder(tree,dist);
@@ -97,11 +100,10 @@ set(gca,'XTick',0:168:1176);
 set(gca,'XTickLabel',-1:1:6);
 xlabel('Time (Weeks)','FontSize',20);
 ylabel('Overexpressed Node','FontSize',20);
-caxis([-1,1]); 
+caxis([-0.5,0.5]); 
 
 
-% figure S6 network activity in each overexpression
-
+% figure S6 
 figure
 colormap(flipud(bone))
 imagesc(pert_node_up_norm(1:1177,:)')
@@ -141,7 +143,7 @@ end
 
 sens_mean = mean(sens_ens(:,1:end-1,:),3);
 
-
+% entire ensemble screen
 tree = linkage(sens_mean); %tree
 dist = pdist(sens_mean); %distances
 leafOrder = optimalleaforder(tree,dist);
@@ -161,7 +163,7 @@ ylabel('Altered Node','FontSize',20);
 caxis([-1,1]); 
 
 
-
+% similar to figure 5 but ensemble
 sens_meanDim = sens_mean;
 sens_meanDim(ignoreDex,:) = [];
 tree = linkage(sens_meanDim); %tree
